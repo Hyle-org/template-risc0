@@ -19,6 +19,9 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
 
+    #[arg(long, default_value = "bob")]
+    pub username: String,
+
     #[arg(long, default_value = "http://localhost:4321")]
     pub host: String,
 
@@ -44,12 +47,14 @@ async fn main() -> Result<()> {
     let prover = Risc0Prover::new(GUEST_ELF);
 
     // This dummy example doesn't uses identities. But there are required fields & validation.
-    let identity = format!("none.{}", contract_name);
+    let identity = format!("{}.{}", cli.username, contract_name);
 
     match cli.command {
         Commands::RegisterContract {} => {
             // Build initial state of contract
-            let initial_state = Counter { value: 0 };
+            let initial_state = Counter {
+                values: Default::default(),
+            };
 
             // Send the transaction to register the contract
             let res = client

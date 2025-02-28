@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use borsh::{io::Error, BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
@@ -10,12 +12,16 @@ impl HyleContract for Counter {
         let (action, ctx) = sdk::utils::parse_raw_contract_input::<CounterAction>(contract_input)?;
 
         // Execute the contract logic
-        match action {
-            CounterAction::Increment => self.value += 1,
-        }
+        let value = match action {
+            CounterAction::Increment => self
+                .values
+                .entry(contract_input.identity.0.clone())
+                .and_modify(|v| *v += 1)
+                .or_insert(1),
+        };
 
         // program_output might be used to give feedback to the user
-        let program_output = format!("new value: {}", self.value);
+        let program_output = format!("new value: {}", value);
         Ok((program_output, ctx, vec![]))
     }
 }
@@ -29,7 +35,7 @@ pub enum CounterAction {
 /// The state of the contract, in this example it is fully serialized on-chain
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone)]
 pub struct Counter {
-    pub value: u32,
+    pub values: BTreeMap<String, u32>,
 }
 
 /// Utils function for the host
